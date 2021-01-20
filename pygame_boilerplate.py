@@ -27,6 +27,10 @@ class Player(pygame.sprite.Sprite):
         self.y_vel = 3
 
     def update(self):
+        # Update the position
+        # self.rect.x += self.x_vel
+        # self.rect.y += self.y_vel
+
         # If the position is out of bounds, put it back in bounds
         if self.rect.top + self.y_vel <= 0:
             self.rect.top = 0
@@ -44,10 +48,10 @@ class Player(pygame.sprite.Sprite):
 
     def move_up(self):
         # Change the player's y velocity
-        self.rect.y -= self.y_vel
+        self.rect.y += self.y_vel
 
     def move_down(self):
-        self.rect.y += self.y_vel
+        self.rect.y -= self.y_vel
 
     def move_right(self):
         # Change the player's x vel
@@ -57,6 +61,11 @@ class Player(pygame.sprite.Sprite):
         self.rect.x -= self.x_vel
 
     # Some functions to stop the x and y vels
+    def stop_x(self):
+        self.x_vel = 0
+
+    def stop_y(self):
+        self.y_vel = 0
 
     def shoot(self):
         # Shoots a projectile
@@ -89,15 +98,7 @@ def main():
             if event.type == pygame.QUIT:
                 done = True
 
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            player.move_left()
-        if keys[pygame.K_RIGHT]:
-            player.move_right()
-        if keys[pygame.K_UP]:
-            player.move_up()
-        if keys[pygame.K_DOWN]:
-            player.move_down()
+
 
         # ----- LOGIC
 

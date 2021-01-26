@@ -213,8 +213,7 @@ def main():
     all_sprites.add(player)
 
     # Amount of ticks since the game has started
-    # ticks = 40 * TPS
-    ticks = 0
+    ticks = 40 * TPS
 
     # ----- MAIN LOOP
     while not done:
@@ -300,13 +299,13 @@ def main():
                 lazer = Lazer(random.randrange(1, 3))
                 all_sprites.add(lazer)
             
-        # Stage 3: Hard - 7 - 10 obstacles per wave, waves every 30 ticks, each obstacle varies in speed from 2 - 7
+        # Stage 3: Hard - 6 - 8 obstacles per wave, waves every 30 ticks, each obstacle varies in speed from 2 - 6
         # Spawn a lazer every second
         elif ticks < 70 * TPS:
             if ticks % 30 == 0:
-                # Spawns 7 - 10 obstacles
-                for i in range(random.randrange(7, 11)):
-                    obstacle = Obstacle(random.randrange(1, 5), 7)
+                # Spawns 6 - 8 obstacles
+                for i in range(random.randrange(6, 9)):
+                    obstacle = Obstacle(random.randrange(1, 5), 6)
                     all_sprites.add(obstacle)
                     obstacle_sprites.add(obstacle)
                     
@@ -314,7 +313,7 @@ def main():
             if ticks % TPS == 0:
                 lazer = Lazer(random.randrange(1, 3))
                 all_sprites.add(lazer)
-                
+
         # Stage 4: Insane - 7-10 obstacles per wave, wave every 25 ticks, obstacles varies in speed from 2 - 10
         else:
             if ticks % 25 == 0:
@@ -324,8 +323,10 @@ def main():
                     all_sprites.add(obstacle)
                     obstacle_sprites.add(obstacle)
                     
-            # Spawn lazers half a second
+            # Spawn 2 lazers every half a second
             if ticks % 30 == 0:
+                lazer = Lazer(random.randrange(1, 3))
+                all_sprites.add(lazer)
                 lazer = Lazer(random.randrange(1, 3))
                 all_sprites.add(lazer)
 

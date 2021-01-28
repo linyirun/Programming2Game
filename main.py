@@ -148,23 +148,24 @@ class Obstacle(pygame.sprite.Sprite):
             
 class Lazer(pygame.sprite.Sprite):
     # Direction: 1 - vertical, 2 - horizontal
-    def __init__(self, direction):
+    def __init__(self, direction, difficulty = 1):
         super().__init__()
         self.image = pygame.Surface((0, 0))
+        self.difficulty = difficulty
         if direction == 1:
             # Make this a horizontal line
             self.image = pygame.Surface((20, HEIGHT))
             self.rect = self.image.get_rect()
             
             # Set a random x-pos
-            self.rect.x = random.randrange(0, WIDTH)
+            self.rect.x = random.randrange(50, WIDTH - 50)
         else:
             # Make this a vertical line
             self.image = pygame.Surface((WIDTH, 20))
             self.rect = self.image.get_rect()
             
             # Set a random y-pos
-            self.rect.y = random.randrange(0, HEIGHT)
+            self.rect.y = random.randrange(50, HEIGHT - 50)
             
         self.image.fill(CYAN)
         self.image.set_alpha(128)
@@ -174,25 +175,39 @@ class Lazer(pygame.sprite.Sprite):
         
     def update(self):
         self.tick += 1
-        
-        # If this object has existed for 2 seconds,
-        # Color the object green and add itself to obstacle list
-        if self.tick == 2 * TPS:
-            self.image.fill((0, 255, 0))
-            lazer_sprites.add(self)
-            
-            # Make the image not transparent
-            self.image.set_alpha(255)
-        elif self.tick == 3 * TPS:
-            # If the object existed for 3 seconds, kill it
-            self.kill()
-            
+
+        # Check the difficulty of the lazers
+        if self.difficulty == 1:
+            # If this object has existed for 2 seconds,
+            # Color the object green and add itself to obstacle list
+            if self.tick == 2 * TPS:
+                self.image.fill((0, 255, 0))
+                lazer_sprites.add(self)
+
+                # Make the image not transparent
+                self.image.set_alpha(255)
+            elif self.tick == 3 * TPS:
+                # If the object existed for 3 seconds, kill it
+                self.kill()
+        else:
+            # If this object has existed for 1 seconds,
+            # Color the object green and add itself to obstacle list
+            if self.tick == 0.5 * TPS:
+                self.image.fill((0, 255, 0))
+                lazer_sprites.add(self)
+
+                # Make the image not transparent
+                self.image.set_alpha(255)
+            elif self.tick == 1 * TPS:
+                # If the object existed for 2 seconds, kill it
+                self.kill()
+
+
 class Coin(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         
-        
-        
+
 # A function to write text on the screen
 def write_text(text, x, y, font_size):
     font = pygame.font.Font(pygame.font.get_default_font(), font_size)
@@ -203,186 +218,237 @@ def write_text(text, x, y, font_size):
 def main():
     pygame.init()
 
-    # ----- LOCAL VARIABLES
-    # Player's current score
-    score = 0
-    done = False
-    clock = pygame.time.Clock()
+    # Make this a loop so the player can choose to play again
+    while True:
+        # ----- LOCAL VARIABLES
+        # Player's current score
+        score = 0
+        done = False
+        clock = pygame.time.Clock()
 
-    player = Player()
-    all_sprites.add(player)
+        player = Player()
+        all_sprites.add(player)
 
-    # Amount of ticks since the game has started
-    ticks = 40 * TPS
+        # Amount of ticks since the game has started
+        ticks = 0
 
-    # ----- MAIN LOOP
-    while not done:
-        # -- Event Handler
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        started = False
+        to_subtract = 0
+
+        # ----- MAIN LOOP
+        while not done:
+            # -- Event Handler
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+
+            keys = pygame.key.get_pressed()
+            # Handle player movement
+
+            # If the player presses shift, slow down their movement
+            if keys[pygame.K_RSHIFT] or keys[pygame.K_LSHIFT]:
+                player.x_vel = 3
+                player.y_vel = 3
+            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+                player.move_left()
+            if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                player.move_right()
+            if keys[pygame.K_UP] or keys[pygame.K_w]:
+                player.move_up()
+            if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                player.move_down()
+
+            player.x_vel = 7
+            player.y_vel = 7
+
+            # Check to see if the user starts the game
+            if keys[pygame.K_SPACE]:
+                started = True
+
+            # Insane mode
+            if keys[pygame.K_i] and not started:
+                started = True
+                to_subtract = 70 * TPS
+                ticks = 70 * TPS
+
+            # ----- LOGIC
+
+            collided = False
+            # Iterate through the list of obstacles
+            for obstacle in obstacle_sprites:
+                # Check the direction of the obstacle, and kill it if it's off the screen
+                if obstacle.dir == 1 and obstacle.rect.top > HEIGHT:
+                    obstacle.kill()
+                    score += 1
+                elif obstacle.dir == 2 and obstacle.rect.bottom < 0:
+                    obstacle.kill()
+                    score += 1
+                elif obstacle.dir == 3 and obstacle.rect.left > WIDTH:
+                    obstacle.kill()
+                    score += 1
+                elif obstacle.dir == 4 and obstacle.rect.right < 0:
+                    obstacle.kill()
+                    score += 1
+
+                # Check if any of the obstacles have collided the player's center
+                if obstacle.rect.collidepoint(player.rect.center):
+                    collided = True
+
+            # Iterate through the list of lazers to see if any of them have collided w/ plaer
+            for lazer in lazer_sprites:
+                if lazer.rect.collidepoint(player.rect.center):
+                    collided = True
+
+            if collided:
                 done = True
 
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            player.move_left()
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            player.move_right()
-        if keys[pygame.K_UP] or keys[pygame.K_w]:
-            player.move_up()
-        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            player.move_down()
-            
-        # Check to see if the user skips the intro
-        if keys[pygame.K_ESCAPE] and ticks <= 5 * TPS:
-            ticks = 5 * TPS
+            # If game has been going on for less than 5 seconds, don't do anything as it is showing the intro
+            if not started:
+                pass
+            # Stage 1: Pretty easy, 2-3 obstacles per wave, waves every 50 ticks, obstacles are the same speed
+            # Stage lasts until 20 seconds
+            # TPS is ticks per second
+            elif ticks < 20 * TPS:
+                # Check if ticks is a multiple of 50, so it only does it once every 20 ticks
+                if ticks % 50 == 0:
+                    # Spawn 3 - 5 obstacles
+                    for i in range(random.randrange(3, 6)):
+                        # Create an obstacle Class and add it to the list
+                        obstacle = Obstacle(random.randrange(1, 5), 2)
+                        all_sprites.add(obstacle)
+                        obstacle_sprites.add(obstacle)
 
-        # ----- LOGIC
+            # Stage 2: Normal - 4 - 6 obstacles per wave, waves every 40 ticks, each obstacle varies in speed, from 2 - 4
+            # Start spawning lazers at a rate of 1 every 2 seconds
+            # Stage lasts until 40 seconds
+            elif ticks < 40 * TPS:
+                if ticks % 40 == 0:
+                    # Spawn 4 - 6 obstacles
+                    for i in range(random.randrange(4, 7)):
+                        obstacle = Obstacle(random.randrange(1, 5), 4)
+                        all_sprites.add(obstacle)
+                        obstacle_sprites.add(obstacle)
+                # Spawn the lazers (every 2 seconds)
+                if ticks % (2 * TPS) == 0:
+                    lazer = Lazer(random.randrange(1, 3))
+                    all_sprites.add(lazer)
 
-        collided = False
-        # Iterate through the list of obstacles
-        for obstacle in obstacle_sprites:
-            # Check the direction of the obstacle, and kill it if it's off the screen
-            if obstacle.dir == 1 and obstacle.rect.top > HEIGHT:
-                obstacle.kill()
-                score += 1
-            elif obstacle.dir == 2 and obstacle.rect.bottom < 0:
-                obstacle.kill()
-                score += 1
-            elif obstacle.dir == 3 and obstacle.rect.left > WIDTH:
-                obstacle.kill()
-                score += 1
-            elif obstacle.dir == 4 and obstacle.rect.right < 0:
-                obstacle.kill()
-                score += 1
+            # Stage 3: Hard - 6 - 8 obstacles per wave, waves every 30 ticks, each obstacle varies in speed from 2 - 6
+            # Spawn a lazer every second
+            elif ticks < 70 * TPS:
+                if ticks % 30 == 0:
+                    # Spawns 4 - 7 obstacles
+                    for i in range(random.randrange(4, 8)):
+                        obstacle = Obstacle(random.randrange(1, 5), 6)
+                        all_sprites.add(obstacle)
+                        obstacle_sprites.add(obstacle)
 
-            # Check if any of the obstacles have collided the player's center
-            if obstacle.rect.collidepoint(player.rect.center):
-                collided = True
-                
-        # Iterate through the list of lazers to see if any of them have collided w/ plaer
-        for lazer in lazer_sprites:
-            if lazer.rect.collidepoint(player.rect.center):
-                collided = True
+                # Spawn lazers at around a rate of 1 per second
+                if ticks % random.randrange(50, 60) == 0:
+                    lazer = Lazer(random.randrange(1, 3))
+                    all_sprites.add(lazer)
 
-        # TODO: when it has collided
-        if collided:
-            done = True
+            # Stage 4: Insane - 2-9 obstacles per wave, wave every 25 ticks, obstacles varies in speed from 2 - 10
+            # LAZERSS BOIIIIIIIIIIIIIIIIIII
+            else:
+                if ticks % 25 == 0:
+                    # Spawns 2 - 9 obstacles
+                    for i in range(random.randrange(2, 10)):
+                        obstacle = Obstacle(random.randrange(1, 5), 10)
+                        all_sprites.add(obstacle)
+                        obstacle_sprites.add(obstacle)
 
-        # If game has been going on for less than 5 seconds, don't do anything as it is showing the intro
-        if ticks < 5 * TPS:
-            pass
-        # Stage 1: Pretty easy, 2-3 obstacles per wave, waves every 50 ticks, obstacles are the same speed
-        # Stage lasts until 20 seconds
-        # TPS is ticks per second
-        elif ticks < 20 * TPS:
-            # Check if ticks is a multiple of 50, so it only does it once every 20 ticks
-            if ticks % 50 == 0:
-                # Spawn 5 - 7 obstacles
-                for i in range(random.randrange(5, 8)):
-                    # Create an obstacle Class and add it to the list
-                    obstacle = Obstacle(random.randrange(1, 5), 2)
-                    all_sprites.add(obstacle)
-                    obstacle_sprites.add(obstacle)
+                # Spawn lazers at a random rate
+                # See if you are in challenge mode
+                if to_subtract == 70 * TPS:
+                    if ticks % random.randrange(10, 15) == 0:
+                        lazer = Lazer(random.randrange(1, 3), 2)
+                        all_sprites.add(lazer)
+                        lazer = Lazer(random.randrange(1, 3), 2)
+                        all_sprites.add(lazer)
+                else:
+                    if ticks % random.randrange(20, 30) == 0:
+                        lazer = Lazer(random.randrange(1, 3))
+                        all_sprites.add(lazer)
+                        lazer = Lazer(random.randrange(1, 3))
+                        all_sprites.add(lazer)
 
-        # Stage 2: Normal - 5 - 7 obstacles per wave, waves every 40 ticks, each obstacle varies in speed, from 2 - 4
-        # Start spawning lazers at a rate of 1 every 2 seconds
-        # Stage lasts until 40 seconds
-        elif ticks < 40 * TPS:
-            if ticks % 40 == 0:
-                # Spawn 5 - 7 obstacles
-                for i in range(random.randrange(5, 8)):
-                    obstacle = Obstacle(random.randrange(1, 5), 4)
-                    all_sprites.add(obstacle)
-                    obstacle_sprites.add(obstacle)
-            # Spawn the lazers (every 2 seconds)
-            if ticks % (2 * TPS) == 0:
-                lazer = Lazer(random.randrange(1, 3))
-                all_sprites.add(lazer)
-            
-        # Stage 3: Hard - 6 - 8 obstacles per wave, waves every 30 ticks, each obstacle varies in speed from 2 - 6
-        # Spawn a lazer every second
-        elif ticks < 70 * TPS:
-            if ticks % 30 == 0:
-                # Spawns 6 - 8 obstacles
-                for i in range(random.randrange(6, 9)):
-                    obstacle = Obstacle(random.randrange(1, 5), 6)
-                    all_sprites.add(obstacle)
-                    obstacle_sprites.add(obstacle)
-                    
-            # Spawn lazers every second
-            if ticks % TPS == 0:
-                lazer = Lazer(random.randrange(1, 3))
-                all_sprites.add(lazer)
+            # ----- DRAW
+            screen.fill(BLACK)
 
-        # Stage 4: Insane - 7-10 obstacles per wave, wave every 25 ticks, obstacles varies in speed from 2 - 10
-        else:
-            if ticks % 25 == 0:
-                # Spawns 7 - 10 obstacles
-                for i in range(random.randrange(7, 11)):
-                    obstacle = Obstacle(random.randrange(1, 5), 10)
-                    all_sprites.add(obstacle)
-                    obstacle_sprites.add(obstacle)
-                    
-            # Spawn 2 lazers every half a second
-            if ticks % 30 == 0:
-                lazer = Lazer(random.randrange(1, 3))
-                all_sprites.add(lazer)
-                lazer = Lazer(random.randrange(1, 3))
-                all_sprites.add(lazer)
+            # If the player hasn't started the game, show the intro
+            if not started:
+                write_text("Use the arrow keys or WASD to move", 50, 50, 30)
+                write_text("Try to avoid the obstacles for as long as possible", 50, 100, 30)
+                write_text("Your hit-box is the center of the ship -", 50, 150, 30)
+                write_text("it is only 1 pixel wide!", 50, 200, 30)
 
-        # ----- DRAW
-        screen.fill(BLACK)
+                write_text("You get +1 point for every obstacle that goes", 50, 250, 30)
+                write_text("off the screen.", 50, 300, 30)
 
-        # If less than 300 ticks (5 seconds) have passed, show the intro
-        if ticks < 5 * TPS:
-            write_text("Use the arrow keys or WASD to move", 50, 50, 30)
-            write_text("Try to avoid the obstacles for as long as possible", 50, 100, 30)
-            write_text("Your hit-box is the center of the ship -", 50, 150, 30)
-            write_text("it is only 1 pixel wide!", 50, 200, 30)
-            
-            write_text("You get +1 point for every obstacle that goes", 50, 250, 30)
-            write_text("off the screen.", 50, 300, 30)
-            
-            write_text("Press esc to skip this screen...", 50, 500, 30)
-        
+                write_text("Press shift while moving to move slower.", 50, 400, 30)
 
-        # Draw the score
-        write_text(f"Score: {score}", 10, 10, 20)
-        
-        # Display which stage it's on
-        stage = ""
-        if ticks <= 20 * TPS:
-            stage = "Easy"
-        elif ticks <= 40 * TPS:
-            stage = "Normal"
-        elif ticks <= 70 * TPS:
-            stage = "Hard"
-        else:
-            stage = "Insane"
-        
-        # Draw time passed, rounded to 3, only if time passed >= 5
-        if ticks >= 5 * TPS:
-            write_text(f"Time survived: {round(ticks / TPS - 5, 2)}", 200, 10, 20)
-            write_text("Stage: " + stage, 450, 10, 20)
+                write_text("Press SPACE to start", 50, 500, 30)
+                write_text("Press i to literally die in less than 10 seconds", 50, 600, 30)
 
-        all_sprites.update()
-        all_sprites.draw(screen)
 
-        # ----- UPDATE
-        pygame.display.flip()
-        clock.tick(60)
-        ticks += 1
+            # Draw the score
+            write_text(f"Score: {score}", 10, 10, 20)
 
-    # After the game ended, print the score
-    tick = 0
-    while True:
-        screen.fill(BLACK)
-        write_text(f"Your final score is {score}.", 50, 50, 30)
-        write_text(f"You survived for {round(ticks / TPS - 5, 2)} seconds.", 50, 100, 30)
-        pygame.display.flip()
-        tick += 1
-        if tick == 5 * TPS:
+            # Display which stage it's on
+            if ticks <= 20 * TPS:
+                stage = "Easy"
+            elif ticks <= 40 * TPS:
+                stage = "Normal"
+            elif ticks <= 70 * TPS:
+                stage = "Hard"
+            else:
+                stage = "Insane"
+
+            # Draw time passed, rounded to 3, only if the game has started
+            if started:
+                write_text(f"Time survived: {round((ticks - to_subtract) / TPS, 2)}", 200, 10, 20)
+                write_text("Stage: " + stage, 450, 10, 20)
+
+            all_sprites.update()
+            all_sprites.draw(screen)
+
+            # ----- UPDATE
+            pygame.display.flip()
+            clock.tick(60)
+            if started:
+                ticks += 1
+
+        # After the game ended, print the score
+        tick = 0
+        play_again = False
+
+        # Loop for either 10 seconds, or just break if the user decides to play again
+        while True:
+            screen.fill(BLACK)
+            write_text(f"Your final score is {score}.", 50, 50, 30)
+            write_text(f"You survived for {round((ticks - to_subtract) / TPS, 2)} seconds.", 50, 100, 30)
+            write_text(f"Press R to play again, or ESCAPE to quit.", 50, 200, 30)
+
+            pygame.event.get()
+
+            tick += 1
+            keys = pygame.key.get_pressed()
+
+            if keys[pygame.K_r]:
+                play_again = True
+                break
+            if tick == 10 * TPS or keys[pygame.K_ESCAPE]:
+                break
+            pygame.display.flip()
+            clock.tick(60)
+
+        if not play_again:
             break
+
+        for sprite in all_sprites:
+            sprite.kill()
+
     pygame.quit()
 
 

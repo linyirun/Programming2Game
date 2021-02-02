@@ -1,6 +1,7 @@
 import pygame
 import time
 import random
+import os
 
 # ----- CONSTANTS
 BLACK = (0, 0, 0)
@@ -218,6 +219,7 @@ def write_text(text, x, y, font_size):
 def main():
     pygame.init()
 
+
     # Make this a loop so the player can choose to play again
     while True:
         # ----- LOCAL VARIABLES
@@ -352,16 +354,24 @@ def main():
             # LAZERSS BOIIIIIIIIIIIIIIIIIII
             else:
                 if ticks % 25 == 0:
+
+                    # Spawn less obstacles if you are in insane mode
+                    if to_subtract == 70 * TPS:
+                        for i in range(random.randrange(2, 5)):
+                            obstacle = Obstacle(random.randrange(1, 5), 10)
+                            all_sprites.add(obstacle)
+                            obstacle_sprites.add(obstacle)
                     # Spawns 2 - 9 obstacles
-                    for i in range(random.randrange(2, 10)):
-                        obstacle = Obstacle(random.randrange(1, 5), 10)
-                        all_sprites.add(obstacle)
-                        obstacle_sprites.add(obstacle)
+                    else:
+                        for i in range(random.randrange(2, 10)):
+                            obstacle = Obstacle(random.randrange(1, 5), 10)
+                            all_sprites.add(obstacle)
+                            obstacle_sprites.add(obstacle)
 
                 # Spawn lazers at a random rate
                 # See if you are in challenge mode
                 if to_subtract == 70 * TPS:
-                    if ticks % random.randrange(10, 15) == 0:
+                    if ticks % 7 == 0:
                         lazer = Lazer(random.randrange(1, 3), 2)
                         all_sprites.add(lazer)
                         lazer = Lazer(random.randrange(1, 3), 2)
@@ -419,27 +429,53 @@ def main():
             if started:
                 ticks += 1
 
+        # Get the scores from before
+        # Add this score to file
+        file = open("score.txt", "a")
+        file.write(f"{score},{round((ticks - to_subtract) / TPS, 2)}\n")
+
+        file = open("score.txt", "r")
+
+        scores_list = []
+        for line in file:
+            # Temp list to break the string
+            temp = line.split(',')
+            scores_list.append([int(temp[0]), float(temp[1])])
+
         # After the game ended, print the score
-        tick = 0
         play_again = False
 
-        # Loop for either 10 seconds, or just break if the user decides to play again
+        scores_list.sort(reverse=True)
+        # Break if the user decides to play again
         while True:
             screen.fill(BLACK)
             write_text(f"Your final score is {score}.", 50, 50, 30)
             write_text(f"You survived for {round((ticks - to_subtract) / TPS, 2)} seconds.", 50, 100, 30)
             write_text(f"Press R to play again, or ESCAPE to quit.", 50, 200, 30)
 
-            pygame.event.get()
+            write_text(f"Press P to reset the scoreboard", 50, 300, 30)
 
-            tick += 1
+            # Print out the top 3 scores
+            if len(scores_list) >= 1:
+                write_text(f"1. Score: {scores_list[0][0]}, Time: {scores_list[0][1]}", 50, 400, 30)
+            if len(scores_list) >= 2:
+                write_text(f"2. Score: {scores_list[1][0]}, Time: {scores_list[1][1]}", 50, 500, 30)
+            if len(scores_list) >= 3:
+                write_text(f"3. Score: {scores_list[2][0]}, Time: {scores_list[2][1]}", 50, 600, 30)
+
+            pygame.event.get()
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_r]:
                 play_again = True
                 break
-            if tick == 10 * TPS or keys[pygame.K_ESCAPE]:
+            if keys[pygame.K_ESCAPE]:
                 break
+            if keys[pygame.K_p]:
+                if os.path.exists("score.txt"):
+                    os.remove("score.txt")
+                    scores_list.clear()
+
             pygame.display.flip()
             clock.tick(60)
 
